@@ -30,6 +30,62 @@ The solution follows a medallion data architecture pattern:
 ### Schemas (`/schemas`)
 - `x12_transaction_schemas.json` - X12 transaction type definitions
 
+### Documentation (`/docs`)
+
+- `cost-estimation-guide.md` - Comprehensive cost analysis and optimization guide
+- `managed-identity-rbac-enhancements.md` - Security and RBAC documentation
+
+### Scripts (`/scripts`)
+
+- `cost_calculator.py` - Interactive cost estimation tool
+- `cost_scenarios.json` - Pre-defined cost scenarios for batch analysis
+- `Analyze-PipelineCosts.ps1` - PowerShell cost monitoring and analysis
+
+## Cost Analysis and Planning
+
+This solution includes comprehensive cost analysis tools to help you estimate and optimize operational costs:
+
+### Cost Estimation Guide (`docs/cost-estimation-guide.md`)
+
+A detailed analysis covering:
+
+- **Monthly cost ranges**: $45 (1K transactions) to $8,500+ (10M+ transactions)
+- **Component breakdown**: Storage, Data Factory, Functions, Monitoring
+- **5 scenario models**: From small clinics to enterprise healthcare systems
+- **20+ optimization strategies**: Actionable cost reduction techniques
+- **Monitoring setup**: Budget alerts and cost tracking queries
+
+### Interactive Cost Calculator (`scripts/cost_calculator.py`)
+
+```powershell
+# Interactive mode - guided prompts
+python scripts/cost_calculator.py
+
+# Batch mode - process multiple scenarios
+python scripts/cost_calculator.py scripts/cost_scenarios.json
+```
+
+Features:
+
+- Real-time cost calculations based on transaction volume
+- Customizable parameters (file size, processing frequency)
+- Export results to JSON for analysis
+- Built-in optimization recommendations
+
+### Cost Monitoring Script (`scripts/Analyze-PipelineCosts.ps1`)
+
+```powershell
+# Run cost analysis on current Azure resources
+.\scripts\Analyze-PipelineCosts.ps1
+```
+
+Capabilities:
+
+- Query actual Azure costs for your resources
+- Generate automated optimization suggestions
+- Track spending against predefined budgets
+- Resource-specific cost breakdowns
+
 ## Supported X12 Transaction Types
 
 - **837** - Health Care Claim (Professional, Institutional, and Dental)
@@ -102,7 +158,7 @@ azd up
 
 ### Pipeline Flow
 
-1. **Bronze Ingestion**: 
+1. **Bronze Ingestion**:
    - Validates X12 file format
    - Extracts metadata
    - Stores raw files with processing information
@@ -169,6 +225,7 @@ The solution implements Azure security best practices:
 ### Data Quality Monitoring
 
 The pipeline includes comprehensive data quality checks:
+
 - File format validation
 - Segment structure validation
 - Business rule validation
@@ -177,6 +234,7 @@ The pipeline includes comprehensive data quality checks:
 ### Monitoring Dashboards
 
 Create Power BI dashboards using the Gold layer tables:
+
 - Healthcare claim volume and processing trends
 - Healthcare preauthorization request and response analytics
 - Preauthorization approval/denial rates and turnaround times
@@ -188,6 +246,7 @@ Create Power BI dashboards using the Gold layer tables:
 ### Alerts
 
 Set up alerts for:
+
 - Pipeline failures
 - Data quality below threshold (< 70% quality score)
 - Processing time SLA breaches
@@ -261,6 +320,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For support and questions:
+
 1. Check the troubleshooting guide above
 2. Review Azure Fabric documentation
 3. Open an issue in this repository
@@ -271,3 +331,4 @@ For support and questions:
 - **v1.0.0** - Initial release with Bronze, Silver, Gold processing
 - **v1.1.0** - Added data quality monitoring and alerts
 - **v1.2.0** - Enhanced business analytics and KPIs
+- **v1.3.0** - Added comprehensive cost analysis tools and documentation
