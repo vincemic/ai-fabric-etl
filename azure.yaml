@@ -1,0 +1,8 @@
+name: ai-fabric-etl
+metadata:
+  template: ai-fabric-etl@0.0.1-beta
+services:
+  fabric-pipeline:
+    project: ./
+    language: bicep
+    host: containerapp

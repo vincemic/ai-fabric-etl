@@ -1,0 +1,70 @@
+{
+  "environment": "development",
+  "azure": {
+    "subscription_id": "",
+    "resource_group": "rg-fabric-x12-pipeline",
+    "location": "East US 2",
+    "storage_account": {
+      "name": "",
+      "containers": {
+        "bronze": "bronze-x12-raw",
+        "silver": "silver-x12-parsed", 
+        "gold": "gold-x12-business",
+        "archive": "archive-x12"
+      }
+    },
+    "data_factory": {
+      "name": "",
+      "pipelines": {
+        "x12_processing": "X12ProcessingPipeline"
+      }
+    },
+    "fabric": {
+      "workspace_name": "",
+      "lakehouse_name": "x12_processing_lakehouse"
+    },
+    "key_vault": {
+      "name": "",
+      "secrets": {
+        "storage_connection_string": "storage-connection-string",
+        "notification_webhook": "notification-webhook-url"
+      }
+    }
+  },
+  "processing": {
+    "batch_size": 100,
+    "max_file_size_mb": 50,
+    "quality_threshold": 70,
+    "retry_attempts": 3,
+    "timeout_minutes": 60,
+    "notification": {
+      "enabled": true,
+      "success_webhook": "",
+      "failure_webhook": ""
+    }
+  },
+  "x12": {
+    "supported_transaction_types": [
+      "850",
+      "810",
+      "856",
+      "997",
+      "214",
+      "940"
+    ],
+    "validation": {
+      "required_segments": ["ISA", "GS", "ST"],
+      "max_segment_length": 1000,
+      "element_separator": "*",
+      "segment_terminator": "~"
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "destinations": [
+      "console",
+      "application_insights"
+    ],
+    "retention_days": 30
+  }
+}

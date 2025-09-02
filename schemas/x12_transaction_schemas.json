@@ -1,0 +1,708 @@
+{
+  "837": {
+    "name": "Health Care Claim",
+    "description": "Healthcare professional, institutional, and dental claim transaction set",
+    "required_segments": [
+      "ST", "BHT", "HL", "CLM", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BHT": {
+        "name": "Beginning of Hierarchical Transaction",
+        "elements": [
+          {"position": 1, "name": "Hierarchical Structure Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 3, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 4, "name": "Date", "type": "date", "required": true},
+          {"position": 5, "name": "Time", "type": "time", "required": false},
+          {"position": 6, "name": "Transaction Type Code", "type": "string", "required": true}
+        ]
+      },
+      "HL": {
+        "name": "Hierarchical Level",
+        "elements": [
+          {"position": 1, "name": "Hierarchical ID Number", "type": "string", "required": true},
+          {"position": 2, "name": "Hierarchical Parent ID Number", "type": "string", "required": false},
+          {"position": 3, "name": "Hierarchical Level Code", "type": "string", "required": true},
+          {"position": 4, "name": "Hierarchical Child Code", "type": "string", "required": false}
+        ]
+      },
+      "NM1": {
+        "name": "Individual or Organizational Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Entity Type Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Name Last or Organization Name", "type": "string", "required": false},
+          {"position": 4, "name": "Name First", "type": "string", "required": false},
+          {"position": 5, "name": "Name Middle", "type": "string", "required": false},
+          {"position": 8, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 9, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "CLM": {
+        "name": "Claim Information",
+        "elements": [
+          {"position": 1, "name": "Claim Submitter's Identifier", "type": "string", "required": true},
+          {"position": 2, "name": "Monetary Amount", "type": "decimal", "required": true},
+          {"position": 3, "name": "Claim Filing Indicator Code", "type": "string", "required": false},
+          {"position": 5, "name": "Health Care Service Location Information", "type": "string", "required": true},
+          {"position": 6, "name": "Provider or Supplier Signature Indicator", "type": "string", "required": true},
+          {"position": 7, "name": "Medicare Assignment Code", "type": "string", "required": false},
+          {"position": 8, "name": "Yes/No Condition or Response Code", "type": "string", "required": false},
+          {"position": 9, "name": "Release of Information Code", "type": "string", "required": false}
+        ]
+      },
+      "DTP": {
+        "name": "Date or Time or Period",
+        "elements": [
+          {"position": 1, "name": "Date/Time Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Date Time Period Format Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Date Time Period", "type": "string", "required": true}
+        ]
+      },
+      "REF": {
+        "name": "Reference Information",
+        "elements": [
+          {"position": 1, "name": "Reference Identification Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Reference Identification", "type": "string", "required": false}
+        ]
+      },
+      "SV1": {
+        "name": "Professional Service",
+        "elements": [
+          {"position": 1, "name": "Product/Service ID", "type": "string", "required": true},
+          {"position": 2, "name": "Monetary Amount", "type": "decimal", "required": true},
+          {"position": 3, "name": "Unit or Basis for Measurement Code", "type": "string", "required": true},
+          {"position": 4, "name": "Service Unit Count", "type": "decimal", "required": false},
+          {"position": 5, "name": "Place of Service Code", "type": "string", "required": false},
+          {"position": 6, "name": "Service Type Code", "type": "string", "required": false}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "835": {
+    "name": "Health Care Claim Payment/Advice",
+    "description": "Healthcare claim payment and remittance advice transaction set",
+    "required_segments": [
+      "ST", "BPR", "TRN", "CLP", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BPR": {
+        "name": "Beginning Segment for Payment Order/Remittance Advice",
+        "elements": [
+          {"position": 1, "name": "Transaction Handling Code", "type": "string", "required": true},
+          {"position": 2, "name": "Monetary Amount", "type": "decimal", "required": true},
+          {"position": 3, "name": "Credit/Debit Flag Code", "type": "string", "required": true},
+          {"position": 4, "name": "Payment Method Code", "type": "string", "required": true},
+          {"position": 5, "name": "Payment Format Code", "type": "string", "required": false},
+          {"position": 10, "name": "Originating Company Identifier", "type": "string", "required": false},
+          {"position": 16, "name": "Date", "type": "date", "required": true}
+        ]
+      },
+      "TRN": {
+        "name": "Trace",
+        "elements": [
+          {"position": 1, "name": "Trace Type Code", "type": "string", "required": true},
+          {"position": 2, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 3, "name": "Originating Company Identifier", "type": "string", "required": false}
+        ]
+      },
+      "N1": {
+        "name": "Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Name", "type": "string", "required": false},
+          {"position": 3, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 4, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "CLP": {
+        "name": "Claim Level Payment Information",
+        "elements": [
+          {"position": 1, "name": "Claim Submitter's Identifier", "type": "string", "required": true},
+          {"position": 2, "name": "Claim Status Code", "type": "string", "required": true},
+          {"position": 3, "name": "Monetary Amount", "type": "decimal", "required": true},
+          {"position": 4, "name": "Monetary Amount", "type": "decimal", "required": true},
+          {"position": 5, "name": "Monetary Amount", "type": "decimal", "required": false},
+          {"position": 6, "name": "Claim Filing Indicator Code", "type": "string", "required": false},
+          {"position": 7, "name": "Reference Identification", "type": "string", "required": false},
+          {"position": 8, "name": "Facility Code Value", "type": "string", "required": false}
+        ]
+      },
+      "SVC": {
+        "name": "Service Payment Information",
+        "elements": [
+          {"position": 1, "name": "Product/Service ID", "type": "string", "required": true},
+          {"position": 2, "name": "Monetary Amount", "type": "decimal", "required": true},
+          {"position": 3, "name": "Monetary Amount", "type": "decimal", "required": true},
+          {"position": 4, "name": "Revenue Code", "type": "string", "required": false},
+          {"position": 5, "name": "Quantity", "type": "decimal", "required": false}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "834": {
+    "name": "Benefit Enrollment and Maintenance",
+    "description": "Healthcare insurance enrollment and maintenance transaction set",
+    "required_segments": [
+      "ST", "BGN", "N1", "INS", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BGN": {
+        "name": "Beginning Segment",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 2, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 3, "name": "Date", "type": "date", "required": true},
+          {"position": 4, "name": "Time", "type": "time", "required": false},
+          {"position": 5, "name": "Time Zone Code", "type": "string", "required": false},
+          {"position": 6, "name": "Reference Identification", "type": "string", "required": false},
+          {"position": 7, "name": "Transaction Type Code", "type": "string", "required": false},
+          {"position": 8, "name": "Action Code", "type": "string", "required": false}
+        ]
+      },
+      "N1": {
+        "name": "Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Name", "type": "string", "required": false},
+          {"position": 3, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 4, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "INS": {
+        "name": "Insured Benefit",
+        "elements": [
+          {"position": 1, "name": "Yes/No Condition or Response Code", "type": "string", "required": true},
+          {"position": 2, "name": "Individual Relationship Code", "type": "string", "required": true},
+          {"position": 3, "name": "Maintenance Type Code", "type": "string", "required": false},
+          {"position": 4, "name": "Maintenance Reason Code", "type": "string", "required": false},
+          {"position": 5, "name": "Benefit Status Code", "type": "string", "required": false},
+          {"position": 6, "name": "Medicare Plan Code", "type": "string", "required": false},
+          {"position": 8, "name": "Employment Status Code", "type": "string", "required": false},
+          {"position": 9, "name": "Student Status Code", "type": "string", "required": false}
+        ]
+      },
+      "NM1": {
+        "name": "Individual or Organizational Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Entity Type Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Name Last or Organization Name", "type": "string", "required": false},
+          {"position": 4, "name": "Name First", "type": "string", "required": false},
+          {"position": 5, "name": "Name Middle", "type": "string", "required": false},
+          {"position": 8, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 9, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "HD": {
+        "name": "Health Coverage",
+        "elements": [
+          {"position": 1, "name": "Maintenance Type Code", "type": "string", "required": true},
+          {"position": 2, "name": "Maintenance Reason Code", "type": "string", "required": false},
+          {"position": 3, "name": "Insurance Line Code", "type": "string", "required": true},
+          {"position": 4, "name": "Plan Coverage Description", "type": "string", "required": false},
+          {"position": 5, "name": "Coverage Level Code", "type": "string", "required": false}
+        ]
+      },
+      "DTP": {
+        "name": "Date or Time or Period",
+        "elements": [
+          {"position": 1, "name": "Date/Time Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Date Time Period Format Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Date Time Period", "type": "string", "required": true}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "270": {
+    "name": "Health Care Eligibility Benefit Inquiry",
+    "description": "Healthcare eligibility, coverage or benefit inquiry transaction set",
+    "required_segments": [
+      "ST", "BHT", "HL", "EQ", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BHT": {
+        "name": "Beginning of Hierarchical Transaction",
+        "elements": [
+          {"position": 1, "name": "Hierarchical Structure Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 3, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 4, "name": "Date", "type": "date", "required": true},
+          {"position": 5, "name": "Time", "type": "time", "required": false}
+        ]
+      },
+      "HL": {
+        "name": "Hierarchical Level",
+        "elements": [
+          {"position": 1, "name": "Hierarchical ID Number", "type": "string", "required": true},
+          {"position": 2, "name": "Hierarchical Parent ID Number", "type": "string", "required": false},
+          {"position": 3, "name": "Hierarchical Level Code", "type": "string", "required": true},
+          {"position": 4, "name": "Hierarchical Child Code", "type": "string", "required": false}
+        ]
+      },
+      "NM1": {
+        "name": "Individual or Organizational Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Entity Type Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Name Last or Organization Name", "type": "string", "required": false},
+          {"position": 4, "name": "Name First", "type": "string", "required": false},
+          {"position": 8, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 9, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "EQ": {
+        "name": "Eligibility or Benefit Inquiry",
+        "elements": [
+          {"position": 1, "name": "Service Type Code", "type": "string", "required": false},
+          {"position": 2, "name": "Product/Service ID Qualifier", "type": "string", "required": false},
+          {"position": 3, "name": "Product/Service ID", "type": "string", "required": false},
+          {"position": 4, "name": "Coverage Level Code", "type": "string", "required": false},
+          {"position": 5, "name": "Insurance Type Code", "type": "string", "required": false}
+        ]
+      },
+      "DTP": {
+        "name": "Date or Time or Period",
+        "elements": [
+          {"position": 1, "name": "Date/Time Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Date Time Period Format Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Date Time Period", "type": "string", "required": true}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "271": {
+    "name": "Health Care Eligibility Benefit Response",
+    "description": "Healthcare eligibility, coverage or benefit response transaction set",
+    "required_segments": [
+      "ST", "BHT", "HL", "EB", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BHT": {
+        "name": "Beginning of Hierarchical Transaction",
+        "elements": [
+          {"position": 1, "name": "Hierarchical Structure Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 3, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 4, "name": "Date", "type": "date", "required": true},
+          {"position": 5, "name": "Time", "type": "time", "required": false}
+        ]
+      },
+      "HL": {
+        "name": "Hierarchical Level",
+        "elements": [
+          {"position": 1, "name": "Hierarchical ID Number", "type": "string", "required": true},
+          {"position": 2, "name": "Hierarchical Parent ID Number", "type": "string", "required": false},
+          {"position": 3, "name": "Hierarchical Level Code", "type": "string", "required": true},
+          {"position": 4, "name": "Hierarchical Child Code", "type": "string", "required": false}
+        ]
+      },
+      "NM1": {
+        "name": "Individual or Organizational Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Entity Type Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Name Last or Organization Name", "type": "string", "required": false},
+          {"position": 4, "name": "Name First", "type": "string", "required": false},
+          {"position": 8, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 9, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "EB": {
+        "name": "Eligibility or Benefit Information",
+        "elements": [
+          {"position": 1, "name": "Eligibility or Benefit Information Code", "type": "string", "required": true},
+          {"position": 2, "name": "Coverage Level Code", "type": "string", "required": false},
+          {"position": 3, "name": "Service Type Code", "type": "string", "required": false},
+          {"position": 4, "name": "Insurance Type Code", "type": "string", "required": false},
+          {"position": 5, "name": "Plan Coverage Description", "type": "string", "required": false},
+          {"position": 6, "name": "Time Period Qualifier", "type": "string", "required": false},
+          {"position": 7, "name": "Monetary Amount", "type": "decimal", "required": false},
+          {"position": 8, "name": "Percentage as Decimal", "type": "decimal", "required": false}
+        ]
+      },
+      "DTP": {
+        "name": "Date or Time or Period",
+        "elements": [
+          {"position": 1, "name": "Date/Time Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Date Time Period Format Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Date Time Period", "type": "string", "required": true}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "276": {
+    "name": "Health Care Claim Status Request",
+    "description": "Healthcare claim status inquiry transaction set",
+    "required_segments": [
+      "ST", "BHT", "HL", "TRN", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BHT": {
+        "name": "Beginning of Hierarchical Transaction",
+        "elements": [
+          {"position": 1, "name": "Hierarchical Structure Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 3, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 4, "name": "Date", "type": "date", "required": true},
+          {"position": 5, "name": "Time", "type": "time", "required": false}
+        ]
+      },
+      "HL": {
+        "name": "Hierarchical Level",
+        "elements": [
+          {"position": 1, "name": "Hierarchical ID Number", "type": "string", "required": true},
+          {"position": 2, "name": "Hierarchical Parent ID Number", "type": "string", "required": false},
+          {"position": 3, "name": "Hierarchical Level Code", "type": "string", "required": true},
+          {"position": 4, "name": "Hierarchical Child Code", "type": "string", "required": false}
+        ]
+      },
+      "TRN": {
+        "name": "Trace",
+        "elements": [
+          {"position": 1, "name": "Trace Type Code", "type": "string", "required": true},
+          {"position": 2, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 3, "name": "Originating Company Identifier", "type": "string", "required": false}
+        ]
+      },
+      "NM1": {
+        "name": "Individual or Organizational Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Entity Type Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Name Last or Organization Name", "type": "string", "required": false},
+          {"position": 4, "name": "Name First", "type": "string", "required": false},
+          {"position": 8, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 9, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "DTP": {
+        "name": "Date or Time or Period",
+        "elements": [
+          {"position": 1, "name": "Date/Time Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Date Time Period Format Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Date Time Period", "type": "string", "required": true}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "277": {
+    "name": "Health Care Claim Status Response",
+    "description": "Healthcare claim status response transaction set",
+    "required_segments": [
+      "ST", "BHT", "HL", "STC", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BHT": {
+        "name": "Beginning of Hierarchical Transaction",
+        "elements": [
+          {"position": 1, "name": "Hierarchical Structure Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 3, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 4, "name": "Date", "type": "date", "required": true},
+          {"position": 5, "name": "Time", "type": "time", "required": false}
+        ]
+      },
+      "HL": {
+        "name": "Hierarchical Level",
+        "elements": [
+          {"position": 1, "name": "Hierarchical ID Number", "type": "string", "required": true},
+          {"position": 2, "name": "Hierarchical Parent ID Number", "type": "string", "required": false},
+          {"position": 3, "name": "Hierarchical Level Code", "type": "string", "required": true},
+          {"position": 4, "name": "Hierarchical Child Code", "type": "string", "required": false}
+        ]
+      },
+      "STC": {
+        "name": "Status Information",
+        "elements": [
+          {"position": 1, "name": "Health Care Claim Status Code", "type": "string", "required": true},
+          {"position": 2, "name": "Date", "type": "date", "required": false},
+          {"position": 3, "name": "Action Code", "type": "string", "required": false},
+          {"position": 4, "name": "Monetary Amount", "type": "decimal", "required": false},
+          {"position": 5, "name": "Monetary Amount", "type": "decimal", "required": false},
+          {"position": 10, "name": "Category of Service", "type": "string", "required": false},
+          {"position": 11, "name": "Status Information Effective Date", "type": "date", "required": false}
+        ]
+      },
+      "REF": {
+        "name": "Reference Information",
+        "elements": [
+          {"position": 1, "name": "Reference Identification Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Reference Identification", "type": "string", "required": false}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "278": {
+    "name": "Health Care Services Review Request",
+    "description": "Healthcare preauthorization request transaction set",
+    "required_segments": [
+      "ST", "BHT", "HL", "UM", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BHT": {
+        "name": "Beginning of Hierarchical Transaction",
+        "elements": [
+          {"position": 1, "name": "Hierarchical Structure Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 3, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 4, "name": "Date", "type": "date", "required": true},
+          {"position": 5, "name": "Time", "type": "time", "required": false}
+        ]
+      },
+      "HL": {
+        "name": "Hierarchical Level",
+        "elements": [
+          {"position": 1, "name": "Hierarchical ID Number", "type": "string", "required": true},
+          {"position": 2, "name": "Hierarchical Parent ID Number", "type": "string", "required": false},
+          {"position": 3, "name": "Hierarchical Level Code", "type": "string", "required": true},
+          {"position": 4, "name": "Hierarchical Child Code", "type": "string", "required": false}
+        ]
+      },
+      "NM1": {
+        "name": "Individual or Organizational Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Entity Type Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Name Last or Organization Name", "type": "string", "required": false},
+          {"position": 4, "name": "Name First", "type": "string", "required": false},
+          {"position": 5, "name": "Name Middle", "type": "string", "required": false},
+          {"position": 8, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 9, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "UM": {
+        "name": "Health Care Services Review Information",
+        "elements": [
+          {"position": 1, "name": "Request Category Code", "type": "string", "required": true},
+          {"position": 2, "name": "Certification Type Code", "type": "string", "required": false},
+          {"position": 3, "name": "Service Type Code", "type": "string", "required": false},
+          {"position": 4, "name": "Health Care Professional Shortage Area Code", "type": "string", "required": false},
+          {"position": 5, "name": "Review Identification Number", "type": "string", "required": false}
+        ]
+      },
+      "HCR": {
+        "name": "Health Care Services Review",
+        "elements": [
+          {"position": 1, "name": "Action Code", "type": "string", "required": true},
+          {"position": 2, "name": "Review Identification Number", "type": "string", "required": false},
+          {"position": 3, "name": "Review Decision Reason Code", "type": "string", "required": false}
+        ]
+      },
+      "SV1": {
+        "name": "Professional Service",
+        "elements": [
+          {"position": 1, "name": "Product/Service ID Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Monetary Amount", "type": "decimal", "required": false},
+          {"position": 3, "name": "Unit or Basis for Measurement Code", "type": "string", "required": false},
+          {"position": 4, "name": "Service Unit Count", "type": "decimal", "required": false},
+          {"position": 5, "name": "Place of Service Code", "type": "string", "required": false}
+        ]
+      },
+      "DTP": {
+        "name": "Date or Time or Period",
+        "elements": [
+          {"position": 1, "name": "Date/Time Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Date/Time Format Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Date/Time Period", "type": "string", "required": true}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  },
+  "279": {
+    "name": "Health Care Services Review Response",
+    "description": "Healthcare preauthorization response transaction set",
+    "required_segments": [
+      "ST", "BHT", "HL", "HCR", "SE"
+    ],
+    "segments": {
+      "ST": {
+        "name": "Transaction Set Header",
+        "elements": [
+          {"position": 1, "name": "Transaction Set Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      },
+      "BHT": {
+        "name": "Beginning of Hierarchical Transaction",
+        "elements": [
+          {"position": 1, "name": "Hierarchical Structure Code", "type": "string", "required": true},
+          {"position": 2, "name": "Transaction Set Purpose Code", "type": "string", "required": true},
+          {"position": 3, "name": "Reference Identification", "type": "string", "required": true},
+          {"position": 4, "name": "Date", "type": "date", "required": true},
+          {"position": 5, "name": "Time", "type": "time", "required": false}
+        ]
+      },
+      "HL": {
+        "name": "Hierarchical Level",
+        "elements": [
+          {"position": 1, "name": "Hierarchical ID Number", "type": "string", "required": true},
+          {"position": 2, "name": "Hierarchical Parent ID Number", "type": "string", "required": false},
+          {"position": 3, "name": "Hierarchical Level Code", "type": "string", "required": true},
+          {"position": 4, "name": "Hierarchical Child Code", "type": "string", "required": false}
+        ]
+      },
+      "NM1": {
+        "name": "Individual or Organizational Name",
+        "elements": [
+          {"position": 1, "name": "Entity Identifier Code", "type": "string", "required": true},
+          {"position": 2, "name": "Entity Type Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Name Last or Organization Name", "type": "string", "required": false},
+          {"position": 4, "name": "Name First", "type": "string", "required": false},
+          {"position": 5, "name": "Name Middle", "type": "string", "required": false},
+          {"position": 8, "name": "Identification Code Qualifier", "type": "string", "required": false},
+          {"position": 9, "name": "Identification Code", "type": "string", "required": false}
+        ]
+      },
+      "HCR": {
+        "name": "Health Care Services Review",
+        "elements": [
+          {"position": 1, "name": "Action Code", "type": "string", "required": true},
+          {"position": 2, "name": "Review Identification Number", "type": "string", "required": false},
+          {"position": 3, "name": "Review Decision Reason Code", "type": "string", "required": false}
+        ]
+      },
+      "PWK": {
+        "name": "Paperwork",
+        "elements": [
+          {"position": 1, "name": "Report Type Code", "type": "string", "required": true},
+          {"position": 2, "name": "Report Transmission Code", "type": "string", "required": false},
+          {"position": 3, "name": "Report Copies Needed", "type": "integer", "required": false}
+        ]
+      },
+      "MSG": {
+        "name": "Message Text",
+        "elements": [
+          {"position": 1, "name": "Free Form Message Text", "type": "string", "required": true}
+        ]
+      },
+      "DTP": {
+        "name": "Date or Time or Period",
+        "elements": [
+          {"position": 1, "name": "Date/Time Qualifier", "type": "string", "required": true},
+          {"position": 2, "name": "Date/Time Format Qualifier", "type": "string", "required": true},
+          {"position": 3, "name": "Date/Time Period", "type": "string", "required": true}
+        ]
+      },
+      "SE": {
+        "name": "Transaction Set Trailer",
+        "elements": [
+          {"position": 1, "name": "Number of Included Segments", "type": "integer", "required": true},
+          {"position": 2, "name": "Transaction Set Control Number", "type": "string", "required": true}
+        ]
+      }
+    }
+  }
+}
