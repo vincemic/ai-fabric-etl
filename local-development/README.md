@@ -1,34 +1,95 @@
-# Local Development Environment for X12 EDI Processing
+# Local X12 EDI Processing Environment
 
-This directory contains the local development setup that mimics the Azure Fabric infrastructure using open-source alternatives.
-
-## 🏗️ **Local Architecture**
-
-| Azure Service | Local Alternative | Purpose |
-|---------------|------------------|---------|
-| Azure Storage (Data Lake) | MinIO | File storage for Bronze/Silver/Gold layers |
-| Azure Data Factory | Apache Airflow | Pipeline orchestration |
-| Azure Fabric Notebooks | Jupyter Notebook | Interactive development |
-| Azure SQL/Cosmos DB | PostgreSQL | Structured data storage |
-| Azure Service Bus | Redis | Message queuing |
-| Azure Key Vault | Environment variables | Secrets management |
-
-## 🚀 **Quick Start**
+## 🚀 Quick Start
 
 ### Prerequisites
-- Docker Desktop installed and running
-- At least 8GB RAM available for containers
-- Ports 8080, 8888, 9000, 9001, 5432 available
+- Docker Desktop for Windows (latest version)
+- At least 8GB RAM available
+- 10GB free disk space
+- PowerShell 5.1+ (Windows default)
 
-### 1. Start the Environment
+### One-Command Setup
+
 ```powershell
-# Navigate to local development directory
-cd local-development
+# Navigate to project root
+cd C:\tmp\ai-fabric-etl
 
-# Start all services
-docker-compose up -d
+# Run setup script
+.\setup-local-dev.ps1
+```
 
-# Check service health
+**Expected Results:**
+- ✅ All services running in Docker
+- ✅ Airflow database initialized
+- ✅ X12 database schema created
+- ✅ Test data ready for processing
+- ✅ Web interfaces accessible
+
+## � Access Points
+
+| **Service** | **URL** | **Credentials** | **Purpose** |
+|-------------|---------|-----------------|-------------|
+| **Airflow UI** | http://localhost:8080 | admin/admin | Pipeline monitoring & management |
+| **Jupyter Lab** | http://localhost:8888 | token in logs | Interactive development |
+| **MinIO Console** | http://localhost:9001 | minioadmin/minioadmin123 | Storage management |
+| **PostgreSQL** | localhost:5432 | x12user/x12password | Database access |
+
+## 📊 Test Data Processing
+
+### Option 1: Automated Processing (Recommended)
+
+```powershell
+# Process all test X12 files through the pipeline
+docker exec x12-worker python /opt/airflow/processed/process_test_data.py
+```
+
+### Option 2: Airflow Pipeline
+
+1. Open Airflow UI: http://localhost:8080
+2. Enable the `x12_processing_dag` DAG
+3. Trigger the DAG manually
+4. Monitor progress in the Airflow UI
+
+### Option 3: Manual File Processing
+
+```powershell
+# Copy additional X12 files to processing directory
+docker cp your-file.x12 x12-worker:/opt/airflow/processed/input/
+
+# Check processing status
+docker exec x12-data-db psql -U x12user -d x12_data -c "
+SELECT 
+  source_filename, 
+  transaction_type, 
+  quality_score 
+FROM silver_transactions 
+ORDER BY quality_score DESC 
+LIMIT 10;"
+```
+
+## 🏗️ Architecture
+
+### Container Services
+
+```
+x12-storage     - MinIO object storage (S3-compatible)
+x12-postgres    - Airflow metadata database  
+x12-data-db     - X12 data warehouse (medallion architecture)
+x12-redis       - Message queue for Airflow workers
+x12-airflow     - Airflow webserver
+x12-scheduler   - Airflow task scheduler
+x12-worker      - Airflow task executor
+x12-jupyter     - Jupyter Lab for development
+```
+
+### Data Flow
+
+```
+Raw X12 Files → Bronze Layer → Silver Layer → Gold Layer
+      ↓              ↓             ↓            ↓
+  File Storage → Raw Storage → Parsed Data → Analytics
+  (input dir)   (bronze_x12)  (silver_tx)  (gold_*)
+```
 docker-compose ps
 ```
 
@@ -75,7 +136,135 @@ local-development/
 5. **Gold Processing**: Creates business analytics and KPIs
 6. **Storage**: Final data stored in PostgreSQL tables
 
-## 🛠️ **Development Workflow**
+## � Management Commands
+
+### Service Control
+
+```powershell
+# Start environment
+cd local-development
+docker-compose up -d
+
+# Stop environment  
+docker-compose down
+
+# Restart specific service
+docker-compose restart x12-airflow
+
+# View logs
+docker-compose logs -f x12-worker
+
+# Complete cleanup (removes all data)
+docker-compose down -v
+```
+
+### Health Checks
+
+```powershell
+# Check all services
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# Test database connectivity
+docker exec x12-data-db psql -U x12user -d x12_data -c "SELECT version();"
+
+# Test Airflow
+Invoke-WebRequest -Uri "http://localhost:8080/health" -UseBasicParsing
+
+# Test MinIO
+Invoke-WebRequest -Uri "http://localhost:9000/minio/health/live" -UseBasicParsing
+```
+
+### Data Inspection
+
+```powershell
+# View processed files
+docker exec x12-data-db psql -U x12user -d x12_data -c "
+SELECT COUNT(*), status FROM bronze_x12 GROUP BY status;"
+
+# View transaction analytics  
+docker exec x12-data-db psql -U x12user -d x12_data -c "
+SELECT 
+  transaction_type,
+  COUNT(*) as count,
+  ROUND(AVG(quality_score), 1) as avg_quality
+FROM silver_transactions 
+GROUP BY transaction_type 
+ORDER BY transaction_type;"
+
+# View storage usage
+docker exec x12-storage mc du local/
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues & Solutions
+
+**❌ "Database not initialized" in Airflow UI**
+```powershell
+docker-compose exec x12-airflow airflow db init
+docker-compose exec x12-airflow airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
+```
+
+**❌ "Column does not exist" errors**
+```powershell
+# Reinitialize database schema
+docker-compose exec x12-data-db psql -U x12user -d x12_data -f /docker-entrypoint-initdb.d/init.sql
+```
+
+**❌ No test files to process**
+```powershell
+# Copy test data
+docker cp testdata\*.x12 x12-worker:/opt/airflow/processed/input/
+```
+
+**❌ Services won't start**
+```powershell
+# Check Docker Desktop is running
+docker version
+
+# Check port conflicts
+netstat -an | findstr ":8080 :8888 :9000 :9001 :5432"
+
+# View detailed logs
+docker-compose logs x12-airflow
+```
+
+### Getting Help
+
+1. **Check service logs**: `docker-compose logs [service-name]`
+2. **Verify container health**: `docker ps`
+3. **Test connectivity**: Use health check commands above
+4. **Review documentation**: See `/docs` folder for detailed guides
+
+## 📚 Next Steps
+
+### Development Workflow
+
+1. **Modify X12 processing logic**: Edit files in `local-development/airflow/dags/`
+2. **Test changes**: Use Jupyter Lab for interactive development
+3. **Deploy to production**: Follow Azure migration guide in `/docs`
+
+### Scaling Considerations
+
+- **Add workers**: Increase `replicas` in docker-compose.yml
+- **Optimize database**: Tune PostgreSQL settings for larger datasets  
+- **Monitor performance**: Use Airflow metrics and database monitoring
+
+### Production Migration
+
+See `/docs/azure-migration-guide.md` for detailed steps to deploy this pipeline to Azure Fabric.
+
+---
+
+## 📖 Documentation
+
+- [Architecture Guide](../docs/local-development-architecture.md)
+- [Operations Management](../docs/operations-management-guide.md)  
+- [Troubleshooting](../docs/troubleshooting-guide.md)
+- [Performance Tuning](../docs/performance-tuning-guide.md)
+- [Azure Migration](../docs/azure-migration-guide.md)
+
+**🎉 You now have a complete local X12 EDI processing environment!**
 
 ### 1. Modify Processing Logic
 ```powershell

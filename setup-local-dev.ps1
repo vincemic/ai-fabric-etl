@@ -67,8 +67,8 @@ MINIO_ENDPOINT=minio:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin123
 
-# Database Configuration
-POSTGRES_HOST=data-postgres
+# Database Configuration  
+POSTGRES_HOST=x12-data-db
 POSTGRES_PORT=5432
 POSTGRES_DB=x12_data
 POSTGRES_USER=x12user
@@ -130,16 +130,24 @@ try {
         }
     }
     
-    # Initialize Airflow (one-time setup)
-    Write-Host "Initializing Airflow..." -ForegroundColor Yellow
-    docker-compose exec airflow-webserver airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin 2>$null
+    # Initialize Airflow database (critical first step)
+    Write-Host "Initializing Airflow database..." -ForegroundColor Yellow
+    docker-compose exec x12-airflow airflow db init
+    
+    # Create Airflow admin user (one-time setup)
+    Write-Host "Creating Airflow admin user..." -ForegroundColor Yellow
+    docker-compose exec x12-airflow airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
+    
+    # Initialize database schema (critical for X12 processing)
+    Write-Host "Initializing X12 database schema..." -ForegroundColor Yellow
+    docker-compose exec x12-data-db psql -U x12user -d x12_data -f /docker-entrypoint-initdb.d/init.sql
     
     # Create MinIO buckets
     Write-Host "Creating storage buckets..." -ForegroundColor Yellow
-    docker-compose exec minio mc alias set local http://localhost:9000 minioadmin minioadmin123 2>$null
-    docker-compose exec minio mc mb local/bronze-x12-raw 2>$null
-    docker-compose exec minio mc mb local/silver-x12-parsed 2>$null
-    docker-compose exec minio mc mb local/gold-x12-business 2>$null
+    docker-compose exec x12-storage mc alias set local http://localhost:9000 minioadmin minioadmin123
+    docker-compose exec x12-storage mc mb local/bronze-x12-raw 2>$null
+    docker-compose exec x12-storage mc mb local/silver-x12-parsed 2>$null  
+    docker-compose exec x12-storage mc mb local/gold-x12-business 2>$null
     
     Write-Host ""
     Write-Host "Local X12 processing environment is ready!" -ForegroundColor Green
@@ -152,10 +160,11 @@ try {
     
     Write-Host ""
     Write-Host "Next Steps:" -ForegroundColor Yellow
-    Write-Host "1. Open Airflow UI and enable the 'x12_processing_pipeline' DAG"
+    Write-Host "1. Open Airflow UI and enable the 'x12_processing_dag' DAG"
     Write-Host "2. Upload X12 files to the input directory: local-development\processed\input"
-    Write-Host "3. Monitor processing in Airflow UI"
+    Write-Host "3. Monitor processing in Airflow UI"  
     Write-Host "4. View results in PostgreSQL or processed data directories"
+    Write-Host "5. To process test data now, run: docker exec x12-worker python /opt/airflow/processed/process_test_data.py"
     
     Write-Host ""
     Write-Host "Quick Commands:" -ForegroundColor Magenta
@@ -168,9 +177,11 @@ try {
     Write-Host ""
     Write-Host "Getting Jupyter access token..." -ForegroundColor Yellow
     Start-Sleep 5
-    $jupyterLogs = docker-compose logs jupyter 2>$null | Select-String "token="
+    $jupyterLogs = docker-compose logs x12-jupyter 2>$null | Select-String "token="
     if ($jupyterLogs) {
         Write-Host "Jupyter token found in logs above" -ForegroundColor Green
+    } else {
+        Write-Host "To get Jupyter token, run: docker-compose logs x12-jupyter | findstr token" -ForegroundColor Yellow
     }
     
 } catch {

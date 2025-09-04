@@ -13,6 +13,51 @@
 
 ## ⚠️ Common Issues
 
+### Initial Setup Issues (Critical)
+
+**Symptom**: Setup script runs but services fail to function properly
+
+**Critical Setup Steps (Based on Real Experience)**:
+
+1. **Airflow Database Not Initialized**
+   ```powershell
+   # Symptom: Airflow UI shows "database not initialized" error
+   # CRITICAL: Must initialize Airflow database before first use
+   docker-compose exec x12-airflow airflow db init
+   
+   # Then create admin user
+   docker-compose exec x12-airflow airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin
+   ```
+
+2. **Database Schema Not Created**
+   ```powershell
+   # Symptom: X12 processing fails with table not found errors
+   # CRITICAL: Must run schema initialization script
+   docker-compose exec x12-data-db psql -U x12user -d x12_data -f /docker-entrypoint-initdb.d/init.sql
+   ```
+
+3. **Container Name Mismatches**
+   ```powershell
+   # Symptom: Scripts fail to connect to services
+   # CRITICAL: Use correct container names:
+   # - Database: x12-data-db (NOT data-postgres)
+   # - MinIO: x12-storage (NOT minio)
+   # - Jupyter: x12-jupyter (NOT jupyter)
+   
+   # Check actual container names:
+   docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+   ```
+
+4. **Test Data Directory Not Populated**
+   ```powershell
+   # Symptom: No test files to process
+   # CRITICAL: Copy test data to processing directory
+   docker cp testdata\*.x12 x12-worker:/opt/airflow/processed/input/
+   
+   # Verify files copied:
+   docker exec x12-worker ls -la /opt/airflow/processed/input/
+   ```
+
 ### Environment Won't Start
 
 **Symptom**: Docker containers fail to start or exit immediately
@@ -107,6 +152,55 @@
    ```
 
 ## 🔧 Service-Specific Problems
+
+### Database Connection Issues
+
+**Symptom**: Scripts fail with "column does not exist" or connection errors
+
+**Critical Database Fixes (Based on Real Experience)**:
+
+1. **Column Name Mismatches**
+   ```bash
+   # Symptom: psycopg2.errors.UndefinedColumn: column "filename" does not exist
+   # CAUSE: Processing scripts use wrong column names
+   
+   # CHECK ACTUAL SCHEMA:
+   docker exec x12-data-db psql -U x12user -d x12_data -c "\d bronze_x12"
+   docker exec x12-data-db psql -U x12user -d x12_data -c "\d silver_transactions"
+   
+   # CORRECT COLUMN NAMES:
+   # bronze_x12: filename (NOT source_filename)
+   # silver_transactions: id (NOT transaction_id), source_filename
+   ```
+
+2. **Wrong Container Names in Connection Strings**
+   ```python
+   # WRONG (what documentation might show):
+   DB_CONFIG = {'host': 'data-postgres', ...}
+   DB_CONFIG = {'host': 'localhost', ...}
+   
+   # CORRECT (actual container name):
+   DB_CONFIG = {'host': 'x12-data-db', ...}
+   ```
+
+3. **Database User Authentication**
+   ```bash
+   # Symptom: FATAL: role "postgres" does not exist
+   # CAUSE: Using wrong username
+   
+   # CORRECT CREDENTIALS:
+   # User: x12user (NOT postgres)
+   # Password: x12password
+   # Database: x12_data
+   ```
+
+4. **Connection Testing**
+   ```bash
+   # Test database connectivity:
+   docker exec x12-data-db psql -U x12user -d x12_data -c "SELECT version();"
+   
+   # Should return PostgreSQL version info
+   ```
 
 ### Airflow Issues
 
