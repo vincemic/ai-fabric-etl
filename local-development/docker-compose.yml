@@ -1,0 +1,188 @@
+# Local Development Environment for X12 Processing
+# This provides local alternatives to Azure services for development/testing
+
+version: '3.8'
+
+services:
+  # MinIO as local replacement for Azure Storage
+  minio:
+    image: minio/minio:latest
+    container_name: x12-storage
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Apache Airflow as local replacement for Azure Data Factory
+  airflow-webserver:
+    image: apache/airflow:2.7.0-python3.11
+    container_name: x12-airflow
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+      _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    volumes:
+      - ./local-airflow/dags:/opt/airflow/dags
+      - ./local-airflow/logs:/opt/airflow/logs
+      - ./local-airflow/config:/opt/airflow/config
+      - ./local-airflow/plugins:/opt/airflow/plugins
+      - ./testdata:/opt/airflow/data/input
+      - ./local-development/processed:/opt/airflow/data/processed
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.0-python3.11
+    container_name: x12-scheduler
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
+      AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    volumes:
+      - ./local-airflow/dags:/opt/airflow/dags
+      - ./local-airflow/logs:/opt/airflow/logs
+      - ./local-airflow/config:/opt/airflow/config
+      - ./local-airflow/plugins:/opt/airflow/plugins
+      - ./testdata:/opt/airflow/data/input
+      - ./local-development/processed:/opt/airflow/data/processed
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    command: scheduler
+
+  airflow-worker:
+    image: apache/airflow:2.7.0-python3.11
+    container_name: x12-worker
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    volumes:
+      - ./local-airflow/dags:/opt/airflow/dags
+      - ./local-airflow/logs:/opt/airflow/logs
+      - ./local-airflow/config:/opt/airflow/config
+      - ./local-airflow/plugins:/opt/airflow/plugins
+      - ./testdata:/opt/airflow/data/input
+      - ./local-development/processed:/opt/airflow/data/processed
+    healthcheck:
+      test: ["CMD", "celery", "--app", "airflow.executors.celery_executor.app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    command: celery worker
+
+  # PostgreSQL for Airflow metadata
+  postgres:
+    image: postgres:15
+    container_name: x12-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    restart: always
+
+  # Redis for Celery broker
+  redis:
+    image: redis:7.2-alpine
+    container_name: x12-redis
+    expose:
+      - 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: always
+
+  # Jupyter Notebook for development
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: x12-jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      GRANT_SUDO: "yes"
+    volumes:
+      - ./notebooks:/home/jovyan/work/notebooks
+      - ./testdata:/home/jovyan/work/data/input
+      - ./local-development/processed:/home/jovyan/work/data/processed
+      - ./schemas:/home/jovyan/work/schemas
+    restart: always
+
+  # PostgreSQL for processed data storage
+  data-postgres:
+    image: postgres:15
+    container_name: x12-data-db
+    environment:
+      POSTGRES_USER: x12user
+      POSTGRES_PASSWORD: x12password
+      POSTGRES_DB: x12_data
+    ports:
+      - "5432:5432"
+    volumes:
+      - data-postgres-volume:/var/lib/postgresql/data
+      - ./local-development/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+
+volumes:
+  minio-data:
+  postgres-db-volume:
+  data-postgres-volume:
+
+networks:
+  default:
+    name: x12-network
