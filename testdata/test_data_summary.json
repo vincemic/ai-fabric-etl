@@ -1,0 +1,104 @@
+{
+  "generation_date": "2025-09-04T13:47:50.256569",
+  "total_files": 53,
+  "scenarios": [
+    {
+      "name": "development",
+      "description": "Basic development testing",
+      "file_count": 15,
+      "transaction_types": [
+        "837",
+        "835",
+        "270",
+        "271"
+      ]
+    },
+    {
+      "name": "claims_processing",
+      "description": "Claims and payments focus",
+      "file_count": 20,
+      "transaction_types": [
+        "837",
+        "835"
+      ]
+    },
+    {
+      "name": "eligibility_verification",
+      "description": "Eligibility inquiries and responses",
+      "file_count": 10,
+      "transaction_types": [
+        "270",
+        "271"
+      ]
+    },
+    {
+      "name": "status_requests",
+      "description": "Claim status requests and responses",
+      "file_count": 8,
+      "transaction_types": [
+        "276",
+        "277"
+      ]
+    }
+  ],
+  "providers": [
+    {
+      "name": "MAIN STREET CLINIC",
+      "npi": "1234567890",
+      "id": "MSC001"
+    },
+    {
+      "name": "DOWNTOWN HOSPITAL",
+      "npi": "2345678901",
+      "id": "DTH002"
+    },
+    {
+      "name": "FAMILY CARE CENTER",
+      "npi": "3456789012",
+      "id": "FCC003"
+    },
+    {
+      "name": "SPECIALTY PHYSICIANS",
+      "npi": "4567890123",
+      "id": "SPC004"
+    },
+    {
+      "name": "URGENT CARE PLUS",
+      "npi": "5678901234",
+      "id": "UCP005"
+    }
+  ],
+  "payers": [
+    {
+      "name": "BLUE CROSS BLUE SHIELD",
+      "id": "BCBS001"
+    },
+    {
+      "name": "AETNA HEALTH PLANS",
+      "id": "AETNA02"
+    },
+    {
+      "name": "UNITED HEALTHCARE",
+      "id": "UHC0003"
+    },
+    {
+      "name": "CIGNA HEALTHCARE",
+      "id": "CIGNA04"
+    },
+    {
+      "name": "HUMANA MEDICAL",
+      "id": "HUMANA5"
+    }
+  ],
+  "transaction_types": {
+    "837": "Health Care Claim",
+    "835": "Health Care Claim Payment/Advice",
+    "834": "Benefit Enrollment and Maintenance",
+    "270": "Health Care Eligibility Benefit Inquiry",
+    "271": "Health Care Eligibility Benefit Response",
+    "276": "Health Care Claim Status Request",
+    "277": "Health Care Claim Status Response",
+    "278": "Health Care Services Review Request",
+    "279": "Health Care Services Review Response"
+  }
+}
