@@ -1,0 +1,10 @@
+azure-functions
+azure-identity
+azure-keyvault-secrets
+azure-storage-blob
+azure-servicebus
+paramiko
+cryptography
+pynacl
+python-gnupg
+pgpy

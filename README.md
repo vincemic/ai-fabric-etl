@@ -1,20 +1,32 @@
 # Azure Fabric X12 EDI Processing Pipeline - Healthcare
 
-This project implements a comprehensive data pipeline for processing healthcare X12 EDI files using Azure Fabric and a medallion data architecture (Bronze, Silver, Gold layers).
+This project implements a comprehensive data pipeline for processing healthcare X12 EDI files using Azure Fabric and a medallion data architecture (Bronze, Silver, Gold layers) with secure SFTP file exchange and PGP encryption capabilities.
 
 ## Architecture Overview
 
 The solution follows a medallion data architecture pattern:
 
 - **Bronze Layer**: Raw X12 file ingestion and basic validation
-- **Silver Layer**: Parsed and cleaned X12 data with quality checks
+- **Silver Layer**: Parsed and cleaned X12 data with quality checks  
 - **Gold Layer**: Business-ready aggregated data for analytics and reporting
+
+### SFTP Integration with PGP Encryption
+
+- **Secure File Exchange**: Automated SFTP operations for trading partner file exchange
+- **PGP Encryption**: End-to-end encryption for sensitive healthcare data
+- **Digital Signatures**: File authenticity verification using PGP signatures
+- **Multi-Partner Support**: Individual encryption settings per trading partner
 
 ## Components
 
 ### Infrastructure (`/infra`)
 - `main.bicep` - Azure infrastructure deployment template
 - `main.parameters.json` - Infrastructure parameters
+
+### SFTP Functions (`/functions/sftp-operations`)
+- `fetch_files/` - Automated file retrieval from trading partners with PGP decryption
+- `push_files/` - Secure file delivery to trading partners with PGP encryption
+- `health_check/` - Connection monitoring and PGP validation
 
 ### Notebooks (`/notebooks`)
 - `bronze_x12_ingestion.py` - Bronze layer processing
@@ -26,20 +38,79 @@ The solution follows a medallion data architecture pattern:
 
 ### Configuration (`/config`)
 - `development.json` - Environment-specific configuration
+- `trading-partners-config.sample.json` - Sample trading partner configuration
+- `pgp-trading-partners-config.example.json` - Complete PGP configuration example
 
 ### Schemas (`/schemas`)
 - `x12_transaction_schemas.json` - X12 transaction type definitions
 
-### Documentation (`/docs`)
+### SFTP Source Code (`/src/sftp`)
+- `manager.py` - Trading partner management with PGP operations
+- `connector.py` - SFTP connection handling
+- `pgp_manager.py` - PGP encryption, decryption, and signing
+- `exceptions.py` - Custom exception classes
 
+### Documentation (`/docs`)
+- `pgp-encryption-guide.md` - Comprehensive PGP setup and usage guide
+- `sftp-trading-partner-guide.md` - Trading partner setup instructions
 - `cost-estimation-guide.md` - Comprehensive cost analysis and optimization guide
 - `managed-identity-rbac-enhancements.md` - Security and RBAC documentation
 
 ### Scripts (`/scripts`)
-
+- `pgp_setup.py` - PGP key generation and management utility
 - `cost_calculator.py` - Interactive cost estimation tool
 - `cost_scenarios.json` - Pre-defined cost scenarios for batch analysis
 - `Analyze-PipelineCosts.ps1` - PowerShell cost monitoring and analysis
+
+## Quick Start with PGP Encryption
+
+### 1. Generate Organization PGP Keys
+
+```bash
+# Generate new key pair for your organization
+python scripts/pgp_setup.py generate-keys \
+  --name "Your Organization" \
+  --email "edi@yourorg.com" \
+  --passphrase "your-secure-passphrase"
+```
+
+### 2. Import Trading Partner Keys
+
+```bash
+# Import a partner's public key
+python scripts/pgp_setup.py import-key \
+  --partner-id PARTNER001 \
+  --key-file /path/to/partner-public-key.asc
+```
+
+### 3. Configure Trading Partners
+
+Update `trading-partners-config.json` with PGP settings:
+
+```json
+{
+  "id": "PARTNER001",
+  "pgp": {
+    "enabled": true,
+    "encrypt_outbound": true,
+    "decrypt_inbound": true,
+    "sign_outbound": true,
+    "verify_inbound": true
+  }
+}
+```
+
+### 4. Validate Configuration
+
+```bash
+# Validate all PGP configurations
+python scripts/pgp_setup.py validate --config trading-partners-config.json
+
+# Test PGP operations with a specific partner
+python scripts/pgp_setup.py test --partner-id PARTNER001
+```
+
+For detailed setup instructions, see the [PGP Encryption Guide](docs/pgp-encryption-guide.md).
 
 ## Cost Analysis and Planning
 

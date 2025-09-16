@@ -1,5 +1,5 @@
-# Azure Fabric X12 Pipeline Deployment Script
-# This script deploys the complete X12 processing pipeline infrastructure
+# Azure Fabric X12 Pipeline Deployment Script with SFTP Support
+# This script deploys the complete X12 processing pipeline infrastructure including SFTP trading partner connectivity
 
 param(
     [Parameter(Mandatory=$true)]
@@ -15,7 +15,16 @@ param(
     [string]$Environment = "dev",
     
     [Parameter(Mandatory=$false)]
-    [string]$ProjectName = "fabricx12"
+    [string]$ProjectName = "fabricx12",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$AdminPrincipalId = "",
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$ConfigureSFTP,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$TradingPartnerConfigFile = ""
 )
 
 # Set error handling
@@ -130,8 +139,30 @@ Write-Host "✓ Resource Group: $ResourceGroupName" -ForegroundColor White
 Write-Host "✓ Storage Account: $storageAccountName" -ForegroundColor White
 Write-Host "✓ Data Factory: $dataFactoryName" -ForegroundColor White
 Write-Host "✓ Key Vault: $keyVaultName" -ForegroundColor White
+Write-Host "✓ SFTP Function App: $sftpFunctionAppName" -ForegroundColor White
 Write-Host "✓ Configuration updated: $configFile" -ForegroundColor White
 Write-Host "✓ Sample X12 file created: $sampleFilePath" -ForegroundColor White
+
+# Configure SFTP if requested
+if ($ConfigureSFTP) {
+    Write-Host "`n🔧 Configuring SFTP Trading Partner Integration..." -ForegroundColor Cyan
+    
+    # Get Key Vault URI
+    $keyVaultUri = az keyvault show --name $keyVaultName --resource-group $ResourceGroupName --query "properties.vaultUri" --output tsv
+    
+    # Set trading partner secrets if config file provided
+    if ($TradingPartnerConfigFile) {
+        Set-TradingPartnerSecrets -KeyVaultName $keyVaultName -PartnerConfigFile $TradingPartnerConfigFile
+    }
+    
+    # Configure SFTP Function environment variables
+    Configure-SFTPEnvironmentVariables -FunctionAppName $sftpFunctionAppName -ResourceGroupName $ResourceGroupName -KeyVaultUri $keyVaultUri -StorageAccountName $storageAccountName
+    
+    # Deploy SFTP Functions
+    Deploy-SFTPFunctions -FunctionAppName $sftpFunctionAppName -ResourceGroupName $ResourceGroupName
+    
+    Write-Host "✓ SFTP Configuration completed" -ForegroundColor Green
+}
 
 Write-Host "`nNext Steps:" -ForegroundColor Cyan
 Write-Host "1. Upload the sample X12 file to the bronze container:" -ForegroundColor White
@@ -143,8 +174,167 @@ Write-Host "3. Import the Data Factory pipeline from /pipelines directory" -Fore
 
 Write-Host "4. Configure pipeline parameters and test the processing" -ForegroundColor White
 
+if ($ConfigureSFTP) {
+    Write-Host "5. Configure trading partner SFTP connection details:" -ForegroundColor White
+    Write-Host "   - Update Function App environment variables with partner hosts and usernames" -ForegroundColor Gray
+    Write-Host "   - Upload private keys and host keys to Key Vault" -ForegroundColor Gray
+    Write-Host "   - Test SFTP connections using the health check function" -ForegroundColor Gray
+    
+    Write-Host "6. Set up monitoring alerts in Application Insights:" -ForegroundColor White
+    Write-Host "   - Import alert configurations from /monitoring/sftp-alerts-config.json" -ForegroundColor Gray
+    Write-Host "   - Configure notification webhooks and email recipients" -ForegroundColor Gray
+}
+
 Write-Host "`nMonitoring URLs:" -ForegroundColor Cyan
 Write-Host "Data Factory: https://portal.azure.com/#@/resource/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.DataFactory/factories/$dataFactoryName" -ForegroundColor Gray
 Write-Host "Storage Account: https://portal.azure.com/#@/resource/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Storage/storageAccounts/$storageAccountName" -ForegroundColor Gray
+if ($ConfigureSFTP) {
+    Write-Host "SFTP Function App: https://portal.azure.com/#@/resource/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Web/sites/$sftpFunctionAppName" -ForegroundColor Gray
+    Write-Host "Key Vault: https://portal.azure.com/#@/resource/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.KeyVault/vaults/$keyVaultName" -ForegroundColor Gray
+}
+
+Write-Host "`nSFTP Functions Deployment:" -ForegroundColor Cyan
+if ($ConfigureSFTP) {
+    Write-Host "To manually deploy SFTP functions:" -ForegroundColor White
+    Write-Host "  cd functions/sftp-operations" -ForegroundColor Gray
+    Write-Host "  func azure functionapp publish $sftpFunctionAppName --python" -ForegroundColor Gray
+} else {
+    Write-Host "To enable SFTP functionality, re-run with -ConfigureSFTP flag:" -ForegroundColor White
+    Write-Host "  .\deploy.ps1 -SubscriptionId $SubscriptionId -ResourceGroupName $ResourceGroupName -Location '$Location' -ConfigureSFTP" -ForegroundColor Gray
+}
 
 Write-Host "`nDeployment completed successfully! 🎉" -ForegroundColor Green
+
+# Functions for SFTP Configuration
+function Set-TradingPartnerSecrets {
+    param(
+        [string]$KeyVaultName,
+        [string]$PartnerConfigFile
+    )
+    
+    if (-not $PartnerConfigFile -or -not (Test-Path $PartnerConfigFile)) {
+        Write-Host "⚠️  No trading partner config file provided or file not found" -ForegroundColor Yellow
+        Write-Host "   Please manually configure Key Vault secrets for trading partners:" -ForegroundColor Gray
+        Write-Host "   - sftp-bcbs001-private-key" -ForegroundColor Gray
+        Write-Host "   - sftp-bcbs001-host-key" -ForegroundColor Gray
+        Write-Host "   - sftp-aetna02-password" -ForegroundColor Gray
+        Write-Host "   - sftp-aetna02-host-key" -ForegroundColor Gray
+        return
+    }
+    
+    Write-Host "📁 Configuring trading partner secrets..." -ForegroundColor Yellow
+    
+    try {
+        $partnerConfig = Get-Content $PartnerConfigFile | ConvertFrom-Json
+        
+        foreach ($partner in $partnerConfig.partners) {
+            $partnerId = $partner.id
+            
+            if ($partner.connection.authentication_method -eq "key") {
+                $keySecretName = $partner.connection.key_vault_secret_name
+                if ($partner.private_key_file -and (Test-Path $partner.private_key_file)) {
+                    $privateKey = Get-Content $partner.private_key_file -Raw
+                    az keyvault secret set --vault-name $KeyVaultName --name $keySecretName --value $privateKey
+                    Write-Host "   ✓ Set private key for $partnerId" -ForegroundColor Green
+                }
+            }
+            
+            if ($partner.connection.authentication_method -eq "password") {
+                $passwordSecretName = $partner.connection.password_secret_name
+                if ($partner.password) {
+                    az keyvault secret set --vault-name $KeyVaultName --name $passwordSecretName --value $partner.password
+                    Write-Host "   ✓ Set password for $partnerId" -ForegroundColor Green
+                }
+            }
+            
+            # Set host key if provided
+            $hostKeySecretName = $partner.connection.host_key_secret_name
+            if ($partner.host_key_file -and (Test-Path $partner.host_key_file)) {
+                $hostKey = Get-Content $partner.host_key_file -Raw
+                az keyvault secret set --vault-name $KeyVaultName --name $hostKeySecretName --value $hostKey
+                Write-Host "   ✓ Set host key for $partnerId" -ForegroundColor Green
+            }
+        }
+        
+        Write-Host "✓ Trading partner secrets configured successfully" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "❌ Failed to configure trading partner secrets: $_" -ForegroundColor Red
+    }
+}
+
+function Deploy-SFTPFunctions {
+    param(
+        [string]$FunctionAppName,
+        [string]$ResourceGroupName
+    )
+    
+    Write-Host "🔧 Deploying SFTP Functions..." -ForegroundColor Yellow
+    
+    $functionsPath = "functions/sftp-operations"
+    
+    if (-not (Test-Path $functionsPath)) {
+        Write-Host "❌ SFTP Functions directory not found: $functionsPath" -ForegroundColor Red
+        return $false
+    }
+    
+    try {
+        # Copy source modules to functions directory
+        if (Test-Path "src/sftp") {
+            Copy-Item -Path "src/sftp" -Destination "$functionsPath/" -Recurse -Force
+            Write-Host "   ✓ Copied SFTP modules to functions directory" -ForegroundColor Green
+        }
+        
+        Write-Host "   📦 Functions directory prepared" -ForegroundColor Gray
+        Write-Host "   Use Azure Functions Core Tools to deploy:" -ForegroundColor Gray
+        Write-Host "     cd $functionsPath" -ForegroundColor Gray
+        Write-Host "     func azure functionapp publish $FunctionAppName --python" -ForegroundColor Gray
+        
+        return $true
+    }
+    catch {
+        Write-Host "❌ Failed to prepare SFTP Functions: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Configure-SFTPEnvironmentVariables {
+    param(
+        [string]$FunctionAppName,
+        [string]$ResourceGroupName,
+        [string]$KeyVaultUri,
+        [string]$StorageAccountName
+    )
+    
+    Write-Host "⚙️  Configuring SFTP Function environment variables..." -ForegroundColor Yellow
+    
+    # Set environment variables for trading partner connections
+    $envVars = @{
+        "BCBS001_HOST" = ""  # To be set manually or from config
+        "BCBS001_PORT" = "22"
+        "BCBS001_USERNAME" = ""  # To be set manually or from config
+        "BCBS001_INBOUND_DIR" = "/inbound/x12"
+        "BCBS001_OUTBOUND_DIR" = "/outbound/x12"
+        "BCBS001_PROCESSED_DIR" = "/processed"
+        
+        "AETNA02_HOST" = ""  # To be set manually or from config
+        "AETNA02_PORT" = "22"
+        "AETNA02_USERNAME" = ""  # To be set manually or from config
+        "AETNA02_INBOUND_DIR" = "/edi/incoming"
+        "AETNA02_OUTBOUND_DIR" = "/edi/outgoing"
+        "AETNA02_PROCESSED_DIR" = "/edi/archive"
+    }
+    
+    foreach ($key in $envVars.Keys) {
+        if ($envVars[$key] -ne "") {
+            az functionapp config appsettings set --name $FunctionAppName --resource-group $ResourceGroupName --settings "$key=$($envVars[$key])" | Out-Null
+        }
+    }
+    
+    Write-Host "✓ Base environment variables configured" -ForegroundColor Green
+    Write-Host "⚠️  Please manually set trading partner host and username values:" -ForegroundColor Yellow
+    Write-Host "   az functionapp config appsettings set --name $FunctionAppName --resource-group $ResourceGroupName --settings 'BCBS001_HOST=your-bcbs-host'" -ForegroundColor Gray
+    Write-Host "   az functionapp config appsettings set --name $FunctionAppName --resource-group $ResourceGroupName --settings 'BCBS001_USERNAME=your-bcbs-username'" -ForegroundColor Gray
+    Write-Host "   az functionapp config appsettings set --name $FunctionAppName --resource-group $ResourceGroupName --settings 'AETNA02_HOST=your-aetna-host'" -ForegroundColor Gray
+    Write-Host "   az functionapp config appsettings set --name $FunctionAppName --resource-group $ResourceGroupName --settings 'AETNA02_USERNAME=your-aetna-username'" -ForegroundColor Gray
+}

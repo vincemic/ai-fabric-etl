@@ -115,6 +115,31 @@ resource archiveContainer 'Microsoft.Storage/storageAccounts/blobServices/contai
   }
 }
 
+// Trading partner SFTP staging containers
+resource sftpInboundContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  parent: blobService
+  name: 'sftp-inbound'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource sftpOutboundContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  parent: blobService
+  name: 'sftp-outbound'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource sftpFailedContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  parent: blobService
+  name: 'sftp-failed'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 // Key Vault for secrets and connection strings
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
@@ -133,6 +158,67 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     networkAcls: {
       defaultAction: 'Allow'
       bypass: 'AzureServices'
+    }
+  }
+}
+
+// Key Vault secrets for trading partner SFTP connections (placeholders)
+resource keyVaultSecretStorageConnection 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'storage-connection-string'
+  properties: {
+    value: 'placeholder-value' // Will be updated by deployment script
+    contentType: 'text/plain'
+    attributes: {
+      enabled: true
+    }
+  }
+}
+
+resource keyVaultSecretSftpBcbs001Key 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'sftp-bcbs001-private-key'
+  properties: {
+    value: 'placeholder-private-key' // Will be updated during partner onboarding
+    contentType: 'application/x-pem-file'
+    attributes: {
+      enabled: true
+    }
+  }
+}
+
+resource keyVaultSecretSftpBcbs001HostKey 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'sftp-bcbs001-host-key'
+  properties: {
+    value: 'placeholder-host-key' // Will be updated during partner onboarding
+    contentType: 'text/plain'
+    attributes: {
+      enabled: true
+    }
+  }
+}
+
+resource keyVaultSecretSftpAetna02Password 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'sftp-aetna02-password'
+  properties: {
+    value: 'placeholder-password' // Will be updated during partner onboarding
+    contentType: 'text/plain'
+    attributes: {
+      enabled: true
+    }
+  }
+}
+
+resource keyVaultSecretSftpAetna02HostKey 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'sftp-aetna02-host-key'
+  properties: {
+    value: 'placeholder-host-key' // Will be updated during partner onboarding
+    contentType: 'text/plain'
+    attributes: {
+      enabled: true
     }
   }
 }
@@ -229,6 +315,105 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'AZURE_CLIENT_ID'
           value: userManagedIdentity.properties.clientId
+        }
+        {
+          name: 'KEY_VAULT_URI'
+          value: keyVault.properties.vaultUri
+        }
+        {
+          name: 'STORAGE_ACCOUNT_NAME'
+          value: storageAccount.name
+        }
+        {
+          name: 'BRONZE_CONTAINER_NAME'
+          value: bronzeContainer.name
+        }
+        {
+          name: 'SFTP_INBOUND_CONTAINER_NAME'
+          value: sftpInboundContainer.name
+        }
+        {
+          name: 'SFTP_OUTBOUND_CONTAINER_NAME'
+          value: sftpOutboundContainer.name
+        }
+        {
+          name: 'SFTP_FAILED_CONTAINER_NAME'
+          value: sftpFailedContainer.name
+        }
+      ]
+      ftpsState: 'Disabled'
+    }
+  }
+}
+
+// Dedicated Function App for SFTP operations
+resource sftpFunctionApp 'Microsoft.Web/sites@2023-01-01' = {
+  name: '${namingPrefix}-sftp-func'
+  location: location
+  kind: 'functionapp,linux'
+  identity: {
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${userManagedIdentity.id}': {}
+    }
+  }
+  properties: {
+    serverFarmId: functionAppServicePlan.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: 'Python|3.11'
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccount.name
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'python'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsights.properties.ConnectionString
+        }
+        {
+          name: 'AZURE_CLIENT_ID'
+          value: userManagedIdentity.properties.clientId
+        }
+        {
+          name: 'KEY_VAULT_URI'
+          value: keyVault.properties.vaultUri
+        }
+        {
+          name: 'STORAGE_ACCOUNT_NAME'
+          value: storageAccount.name
+        }
+        {
+          name: 'BRONZE_CONTAINER_NAME'
+          value: bronzeContainer.name
+        }
+        {
+          name: 'SFTP_INBOUND_CONTAINER_NAME'
+          value: sftpInboundContainer.name
+        }
+        {
+          name: 'SFTP_OUTBOUND_CONTAINER_NAME'
+          value: sftpOutboundContainer.name
+        }
+        {
+          name: 'SFTP_FAILED_CONTAINER_NAME'
+          value: sftpFailedContainer.name
+        }
+        {
+          name: 'SERVICE_BUS_NAMESPACE'
+          value: serviceBusNamespace.name
+        }
+        {
+          name: 'SERVICE_BUS_QUEUE_NAME'
+          value: serviceBusQueue.name
         }
       ]
       ftpsState: 'Disabled'
@@ -477,6 +662,39 @@ resource functionAppKeyVaultRole 'Microsoft.Authorization/roleAssignments@2022-0
   }
 }
 
+// SFTP Function App RBAC - Storage Blob Data Contributor
+resource sftpFunctionAppStorageRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, sftpFunctionApp.id, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe') // Storage Blob Data Contributor
+    principalId: sftpFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SFTP Function App RBAC - Key Vault Secrets User
+resource sftpFunctionAppKeyVaultRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, sftpFunctionApp.id, '4633458b-17de-408a-b874-0445c86b69e6')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6') // Key Vault Secrets User
+    principalId: sftpFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// SFTP Function App RBAC - Service Bus Data Sender
+resource sftpFunctionAppServiceBusRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(serviceBusNamespace.id, sftpFunctionApp.id, '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39')
+  scope: serviceBusNamespace
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39') // Azure Service Bus Data Sender
+    principalId: sftpFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // Service Bus RBAC - Data Factory as Service Bus Data Sender
 resource serviceBusDataSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(serviceBusNamespace.id, dataFactory.id, '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39')
@@ -557,11 +775,17 @@ output resourceGroupName string = resourceGroup().name
 output bronzeContainerName string = bronzeContainer.name
 output silverContainerName string = silverContainer.name
 output goldContainerName string = goldContainer.name
+output archiveContainerName string = archiveContainer.name
+output sftpInboundContainerName string = sftpInboundContainer.name
+output sftpOutboundContainerName string = sftpOutboundContainer.name
+output sftpFailedContainerName string = sftpFailedContainer.name
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
 output applicationInsightsInstrumentationKey string = applicationInsights.properties.InstrumentationKey
 output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
 output functionAppName string = functionApp.name
 output functionAppPrincipalId string = functionApp.identity.principalId
+output sftpFunctionAppName string = sftpFunctionApp.name
+output sftpFunctionAppPrincipalId string = sftpFunctionApp.identity.principalId
 output serviceBusNamespaceName string = serviceBusNamespace.name
 output serviceBusQueueName string = serviceBusQueue.name
 output userManagedIdentityId string = userManagedIdentity.id

@@ -50,7 +50,16 @@
       "856",
       "997",
       "214",
-      "940"
+      "940",
+      "837",
+      "835",
+      "834",
+      "270",
+      "271",
+      "276",
+      "277",
+      "278",
+      "279"
     ],
     "validation": {
       "required_segments": ["ISA", "GS", "ST"],
@@ -59,12 +68,130 @@
       "segment_terminator": "~"
     }
   },
+  "trading_partners": {
+    "enabled": true,
+    "sftp": {
+      "connection_timeout_seconds": 30,
+      "retry_attempts": 3,
+      "retry_delay_seconds": 60,
+      "batch_size": 100,
+      "fetch_schedule": "0 */2 * * *",
+      "push_schedule": "0 */4 * * *"
+    },
+    "partners": [
+      {
+        "id": "BCBS001",
+        "name": "Blue Cross Blue Shield",
+        "description": "Primary health insurance partner",
+        "enabled": true,
+        "connection": {
+          "host": "",
+          "port": 22,
+          "username": "",
+          "authentication_method": "key",
+          "key_vault_secret_name": "sftp-bcbs001-private-key",
+          "password_secret_name": "sftp-bcbs001-password",
+          "host_key_verification": true,
+          "host_key_secret_name": "sftp-bcbs001-host-key"
+        },
+        "directories": {
+          "inbound": "/inbound/x12",
+          "outbound": "/outbound/x12",
+          "processed": "/processed",
+          "failed": "/failed"
+        },
+        "file_patterns": {
+          "fetch": ["*.x12", "*.edi", "*.txt"],
+          "push": ["*.x12", "*.997", "*.999"]
+        },
+        "transaction_types": {
+          "inbound": ["837", "270", "276", "834"],
+          "outbound": ["835", "271", "277", "997"]
+        },
+        "processing": {
+          "auto_fetch": true,
+          "auto_push": true,
+          "archive_after_fetch": true,
+          "delete_after_push": false,
+          "max_file_age_hours": 72,
+          "max_file_size_mb": 100
+        }
+      },
+      {
+        "id": "AETNA02",
+        "name": "Aetna Health Plans",
+        "description": "Secondary health insurance partner",
+        "enabled": true,
+        "connection": {
+          "host": "",
+          "port": 22,
+          "username": "",
+          "authentication_method": "password",
+          "password_secret_name": "sftp-aetna02-password",
+          "host_key_verification": true,
+          "host_key_secret_name": "sftp-aetna02-host-key"
+        },
+        "directories": {
+          "inbound": "/edi/incoming",
+          "outbound": "/edi/outgoing",
+          "processed": "/edi/archive",
+          "failed": "/edi/errors"
+        },
+        "file_patterns": {
+          "fetch": ["*.x12", "*.edi"],
+          "push": ["*.x12", "*.ack"]
+        },
+        "transaction_types": {
+          "inbound": ["837", "270", "276"],
+          "outbound": ["835", "271", "277", "997"]
+        },
+        "processing": {
+          "auto_fetch": true,
+          "auto_push": true,
+          "archive_after_fetch": true,
+          "delete_after_push": false,
+          "max_file_age_hours": 48,
+          "max_file_size_mb": 50
+        }
+      }
+    ]
+  },
   "logging": {
     "level": "INFO",
     "destinations": [
       "console",
       "application_insights"
     ],
-    "retention_days": 30
+    "retention_days": 30,
+    "sftp_operations": {
+      "level": "DEBUG",
+      "include_file_details": true,
+      "include_connection_details": false,
+      "mask_sensitive_data": true
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics": {
+      "sftp_operations": true,
+      "file_processing": true,
+      "error_rates": true
+    },
+    "alerts": {
+      "sftp_connection_failures": {
+        "enabled": true,
+        "threshold": 3,
+        "time_window_minutes": 15
+      },
+      "file_processing_failures": {
+        "enabled": true,
+        "threshold": 5,
+        "time_window_minutes": 30
+      },
+      "large_file_sizes": {
+        "enabled": true,
+        "threshold_mb": 100
+      }
+    }
   }
 }

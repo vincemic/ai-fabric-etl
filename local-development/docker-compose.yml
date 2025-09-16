@@ -178,10 +178,51 @@ services:
       - ./local-development/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: always
 
+  # Test SFTP Server for trading partner simulation
+  sftp-server:
+    image: atmoz/sftp:latest
+    container_name: x12-sftp-server
+    ports:
+      - "2222:22"
+    environment:
+      SFTP_USERS: "bcbs001:password123:1001 aetna02:password456:1002"
+    volumes:
+      - sftp-data:/home
+    restart: always
+    command: >
+      sh -c "
+        mkdir -p /home/bcbs001/inbound/x12 /home/bcbs001/outbound/x12 /home/bcbs001/processed /home/bcbs001/failed &&
+        mkdir -p /home/aetna02/edi/incoming /home/aetna02/edi/outgoing /home/aetna02/edi/archive /home/aetna02/edi/errors &&
+        chown -R bcbs001:users /home/bcbs001 &&
+        chown -R aetna02:users /home/aetna02 &&
+        echo 'SFTP directories created successfully' &&
+        /entrypoint.sh bcbs001:password123:1001 aetna02:password456:1002
+      "
+
+  # SFTP Test Client for testing connections
+  sftp-test-client:
+    image: python:3.11-slim
+    container_name: x12-sftp-test-client
+    volumes:
+      - ../src:/app/src
+      - ./sftp-tests:/app/tests
+      - ./testdata:/app/testdata
+      - ../config:/app/config
+    working_dir: /app
+    restart: always
+    command: >
+      bash -c "
+        apt-get update && apt-get install -y openssh-client &&
+        pip install paramiko azure-storage-blob azure-identity psycopg2-binary &&
+        echo 'SFTP Test Client ready. Use: docker exec -it x12-sftp-test-client python tests/test_sftp_connections.py' &&
+        tail -f /dev/null
+      "
+
 volumes:
   minio-data:
   postgres-db-volume:
   data-postgres-volume:
+  sftp-data:
 
 networks:
   default:
