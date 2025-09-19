@@ -7,7 +7,7 @@ Status: Draft
 
 ## 1. Purpose
 
-Define the backend technical design for the EDI Trading Partner Self-Service Portal pilot. Focus is on credential lifecycle, dashboard/file visibility, and auditability. Real authentication/authorization is intentionally deferred: a **Fake Login Mode** injects a selected user + role context (PartnerUser, PartnerAdmin, InternalSupport) via a test-only header or query parameter. This allows functional validation prior to Entra integration.
+Define the backend technical design for the EDI Trading Partner Self-Service Portal pilot. Focus is on credential lifecycle, dashboard/file visibility, and auditability. Real authentication/authorization is intentionally deferred: a **Backend-Only Fake Login Mode** provides test authentication by injecting a selected user + role context (PartnerUser, PartnerAdmin, InternalSupport) via backend-controlled session tokens. **The frontend operates as if real authentication is in place**, making standard API calls with session tokens. This allows functional validation of the complete auth flow prior to Entra integration.
 
 ## 2. Architectural Overview
 
@@ -21,16 +21,17 @@ Define the backend technical design for the EDI Trading Partner Self-Service Por
 - **Packaging**: Single container image (Linux) ready for App Service.  
 - **Exclusions (Pilot)**: No external storage, no real identity, no secrets management, no horizontal scale complexity.
 
-## 3. Fake Login Mode
+## 3. Fake Login Mode (Backend-Only Implementation)
 
-- Endpoint `POST /fake-login` accepts `{ "userId": string, "partnerId": string, "role": "PartnerUser"|"PartnerAdmin"|"InternalSupport" }` and sets a server-issued session token (opaque GUID) stored in in-memory session dictionary.  
-- Subsequent requests send header: `X-Session-Token: <guid>` to establish principal.  
-- Middleware resolves principal (UserId, PartnerId, Role).  
-- Expiration: 8 hours idle timeout (not persisted).  
-- This mechanism is compiled only when `FakeAuth:Enabled=true`.  
-- SSE connections also send `X-Session-Token`.
+**Important**: Fake authentication is implemented exclusively in the backend. The frontend operates in production-like mode, sending session tokens exactly as it would with real authentication.
 
-## 4. Layered Responsibilities
+- Endpoint `POST /fake-login` accepts `{ "userId": string, "partnerId": string, "role": "PartnerUser"|"PartnerAdmin"|"InternalSupport" }` and returns a server-issued session token (opaque GUID) stored in in-memory session dictionary.
+- Frontend sends standard `X-Session-Token: <guid>` header to establish principal (same as production).
+- Backend middleware resolves principal (UserId, PartnerId, Role) from session token.
+- Expiration: 8 hours idle timeout (not persisted).
+- This mechanism is compiled only when `FakeAuth:Enabled=true`.
+- SSE connections also send `X-Session-Token` header.
+- **Frontend treats this exactly like production authentication** - it has no knowledge of "fake" vs "real" auth modes.## 4. Layered Responsibilities
 
 - **Controllers**: HTTP concerns, model binding, pagination parsing, returning standardized error envelope.  
 - **Application Services**: Orchestrate domain logic (Key generation, Password rotation, Dashboard aggregation).  
@@ -133,7 +134,11 @@ DashboardSummaryDto {
   outboundFiles24h: int,
   successRatePct: number,        // 0-100 inclusive
   avgProcessingMs24h: number|null,
-  openErrors: int
+  openErrors: int,
+  totalBytes24h: number,
+  avgFileSizeBytes24h: number|null,
+  connectionSuccessRate24h: number,
+  largeFileCount24h: number
 }
 
 TimeSeriesPointDto { timestamp: string, inboundCount: int, outboundCount: int }
@@ -248,6 +253,14 @@ Base path `/api`. Authentication replaced by session token.
 | GET | /dashboard/daily-summary | Daily operations (7 day trend) |
 | GET | /dashboard/failure-bursts | Recent failure burst windows |
 | GET | /dashboard/zero-file-window | Inbound inactivity window status |
+| GET | /dashboard/connection/health | Hourly connection outcomes (default last 24h) |
+| GET | /dashboard/connection/status | Latest connection status |
+| GET | /dashboard/throughput | Hourly bytes & file counts |
+| GET | /dashboard/large-files | Top N large files (24h default) |
+| GET | /dashboard/connection/performance | Connection timing stats |
+| GET | /dashboard/daily-summary | Daily operations (7 day trend) |
+| GET | /dashboard/failure-bursts | Recent failure burst windows |
+| GET | /dashboard/zero-file-window | Inbound inactivity window status |
 
 ### 7.1 Query Parameters
 
@@ -310,8 +323,8 @@ IAdvancedMetricsService
   Task<IReadOnlyList<LargeFileDto>> GetLargeFilesAsync(Guid partnerId, DateTime from, DateTime to, int limit)
   Task<IReadOnlyList<ConnectionPerformancePointDto>> GetConnectionPerformanceAsync(Guid partnerId, DateTime from, DateTime to)
   Task<IReadOnlyList<DailyOpsPointDto>> GetDailyOpsAsync(Guid partnerId, int days)
-  Task<IReadOnlyList<FailureBurstPointDto>> GetFailureBurstsAsync(Guid partnerId, TimeSpan lookback)
-  Task<ZeroFileWindowStatusDto> GetZeroFileWindowStatusAsync(Guid partnerId, TimeSpan window)
+  Task<IReadOnlyList<FailureBurstPointDto>> GetFailureBurstsAsync(Guid partnerId, int lookbackMinutes)
+  Task<ZeroFileWindowStatusDto> GetZeroFileWindowStatusAsync(Guid partnerId, int windowHours)
 ```
 
 ### 8.1 Supporting Models
@@ -323,8 +336,8 @@ FileSearchCriteria { page:int, pageSize:int, direction?:FileDirection, status?:F
 AuditSearchCriteria { page:int, pageSize:int, partnerId?:Guid, operationType?:AuditOperationType, dateFrom?:DateTime, dateTo?:DateTime }
 LargeFileQuery { from:DateTime, to:DateTime, limit:int }
 DailySummaryQuery { days:int }
-FailureBurstQuery { lookback:TimeSpan }
-ZeroFileWindowQuery { window:TimeSpan }
+FailureBurstQuery { lookbackMinutes:int }
+ZeroFileWindowQuery { windowHours:int }
 ```
 
 ### 8.2 Key Generation Process

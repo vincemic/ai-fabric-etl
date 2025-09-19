@@ -7,7 +7,7 @@ Status: Draft
 
 ## 1. Purpose
 
-Define the Angular SPA design for the EDI Trading Partner Self-Service Portal pilot focusing on credential management, file visibility, dashboard metrics, audit viewing, and fake authentication role simulation. Real identity integration is explicitly deferred; a **Fake Login Screen** allows testers to assume roles and partner contexts.
+Define the Angular SPA design for the EDI Trading Partner Self-Service Portal pilot focusing on credential management, file visibility, dashboard metrics, audit viewing, and production-ready authentication flow. **The frontend operates exactly as it would in production**, using standard session token authentication. Role simulation and test authentication are handled entirely by the backend - the frontend has no knowledge of "fake" vs "real" authentication modes.
 
 ## 2. Technology Stack
 
@@ -23,17 +23,17 @@ Define the Angular SPA design for the EDI Trading Partner Self-Service Portal pi
 - Testing: Jest (unit), Playwright (E2E).  
 - Linting: ESLint + Prettier.
 
-## 3. Fake Login Screen (Pilot Auth Stub)
+## 3. Login Screen (Production-Ready Interface)
 
-- Route: `/login` (public).  
-- Form Fields: `Partner` (select), `User Id` (text), `Role` (select: PartnerUser | PartnerAdmin | InternalSupport).  
-- On submit: POST `/api/fake-login`, store returned session token in memory + `sessionStorage` (key `portalSessionToken`).  
-- After login: redirect to `/dashboard`.  
-- Token attached via `X-Session-Token` header by interceptor.  
-- Session Expiration Handling: On 401/440-like custom response -> redirect to `/login` with toast message.  
-- Environment guard: Display prominent banner "FAKE LOGIN MODE".  
+**Important**: The frontend implements a standard login interface that works identically in pilot and production modes. The backend handles whether authentication is real or stubbed.
 
-## 4. High-Level Feature Areas
+- Route: `/login` (public).
+- Form Fields: `Partner` (select), `User Id` (text), `Role` (select: PartnerUser | PartnerAdmin | InternalSupport).
+- On submit: POST `/api/login` (or `/api/fake-login` in pilot), store returned session token in memory + `sessionStorage` (key `portalSessionToken`).
+- After login: redirect to `/dashboard`.
+- Token attached via `X-Session-Token` header by interceptor (standard production pattern).
+- Session Expiration Handling: On 401/440-like custom response -> redirect to `/login` with toast message.
+- **Frontend operates identically regardless of backend auth mode** - no special "fake" handling or banners.## 4. High-Level Feature Areas
 
 | Feature | Route Prefix | Components (Primary) | Description |
 |---------|--------------|----------------------|-------------|
@@ -58,11 +58,11 @@ Define the Angular SPA design for the EDI Trading Partner Self-Service Portal pi
 /audit
 /system/version
 ```
-Guards: `SessionGuard` ensures session token presence; `RoleGuard` ensures role for restricted areas (Audit requires InternalSupport). In fake mode both rely on local session state.
+Guards: `SessionGuard` ensures session token presence; `RoleGuard` ensures role for restricted areas (Audit requires InternalSupport). Both guards operate using standard session validation patterns.
 
 ## 6. State Management Strategy
 
-- **AppSessionStore**: Holds session token, current user context (userId, partnerId, role).  
+- **AppSessionStore**: Holds session token, current user context (userId, partnerId, role) received from backend authentication.  
 - **DashboardStore**: Signals for summary, time series, top errors; SSE subscription updates metrics.  
 - **KeysStore**: List of keys (refresh after mutations); ephemeral private key result returned through dialog then discarded.  
 - **SftpStore**: Credential metadata + last rotated.  
@@ -86,7 +86,7 @@ export interface SftpCredentialMetadataDto { lastRotatedAt?: string | null; rota
 export interface RotatePasswordRequest { mode: 'manual' | 'auto'; newPassword?: string; }
 export interface RotatePasswordResponse { password?: string; metadata: SftpCredentialMetadataDto; }
 
-export interface DashboardSummaryDto { inboundFiles24h: number; outboundFiles24h: number; successRatePct: number; avgProcessingMs24h?: number | null; openErrors: number; }
+export interface DashboardSummaryDto { inboundFiles24h: number; outboundFiles24h: number; successRatePct: number; avgProcessingMs24h?: number | null; openErrors: number; totalBytes24h: number; avgFileSizeBytes24h?: number | null; connectionSuccessRate24h: number; largeFileCount24h: number; }
 export interface TimeSeriesPointDto { timestamp: string; inboundCount: number; outboundCount: number; }
 export interface TimeSeriesResponse { points: TimeSeriesPointDto[]; }
 export interface ErrorCategoryDto { category: string; count: number; }
@@ -173,7 +173,7 @@ export interface AuditSearchParams { page?: number; pageSize?: number; partnerId
 
 ## 10. SSE Client Integration
 
-- Service `SseClientService` establishing `EventSource` to `/api/events/stream` with custom header via query param fallback (`?sessionToken=`) because EventSource lacks custom header support natively; backend will allow query param when FakeAuth enabled.  
+- Service `SseClientService` establishing `EventSource` to `/api/events/stream` with session token via `X-Session-Token` header (using query param fallback `?sessionToken=` when EventSource header limitations require it).  
 - Event Types -> Handlers:  
   - `file.created`: Trigger refresh of recent files (if filter active).  
   - `file.statusChanged`: Update item in FilesStore if present.  
@@ -245,13 +245,13 @@ Advanced metrics components (mandatory, collapsible panel)
 - Distinguish user-correctable vs system errors; show retry option.  
 - SSE disconnect events show transient banner with retry progress.  
 
-## 17. Security (Pilot Constraints)
+## 17. Security (Production-Ready Approach)
 
-- No real auth; highlight banner.  
-- Prevent caching of sensitive dialogs (private key/password) by clearing clipboard suggestions when component destroyed.  
-- Sanitize displayed errorMessage from server (plain text only).  
-
-## 18. Logging & Telemetry (Optional Pilot)
+- **Frontend implements production-level security patterns** regardless of backend auth mode.
+- Standard session token handling with secure storage practices.
+- Prevent caching of sensitive dialogs (private key/password) by clearing clipboard suggestions when component destroyed.
+- Sanitize displayed errorMessage from server (plain text only).
+- **No special handling for pilot/fake authentication** - frontend operates as if in production.## 18. Logging & Telemetry (Optional Pilot)
 
 - Console logging only (debug mode) for SSE connection lifecycle.  
 - Optional integration stub for future App Insights JS SDK behind feature flag `enableTelemetry`.  
@@ -287,24 +287,23 @@ Advanced metrics components (mandatory, collapsible panel)
 
 ## 23. Acceptance Criteria (Pilot)
 
-- All defined routes navigable behind fake login.  
-- Key generation returns and displays private key exactly once.  
-- Password rotation auto mode produces length >= configured (default 24).  
-- Dashboard metrics load < 1.5s on seeded dataset.  
-- SSE updates change at least one visible KPI without full page reload.  
-- Audit page blocked for non-InternalSupport roles.  
-- All forms validated client + server with consistent error messages.  
-- Advanced metrics panel loads with: connection health, throughput, performance, large files (top 10), daily summary (7 days), zero file window status, and displays failure burst indicator when triggered.  
-- Added KPI fields (total bytes, avg file size, connection success rate, large file count) present in summary.  
-
-## 24. Risks & Mitigations
+- All defined routes navigable behind standard login.
+- Key generation returns and displays private key exactly once.
+- Password rotation auto mode produces length >= configured (default 24).
+- Dashboard metrics load < 1.5s on seeded dataset.
+- SSE updates change at least one visible KPI without full page reload.
+- Audit page blocked for non-InternalSupport roles.
+- All forms validated client + server with consistent error messages.
+- Advanced metrics panel loads with: connection health, throughput, performance, large files (top 10), daily summary (7 days), zero file window status, and displays failure burst indicator when triggered.
+- Added KPI fields (total bytes, avg file size, connection success rate, large file count) present in summary.
+- **Frontend operates identically regardless of backend authentication mode**.## 24. Risks & Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | SSE unsupported in some browsers | Low | Polling fallback |
 | Large chart library inflates bundle | Med | Evaluate and tree-shake; fallback library option |
 | Private key lingering in memory | Med | Clear component state on destroy; avoid storing in store |
-| Fake auth confusion in demo | Low | Prominent banner & watermark |
+| Session token security in pilot | Low | Standard token handling patterns; backend controls auth mode |
 
 ## 25. Approval
 
