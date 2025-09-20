@@ -226,9 +226,39 @@ Advanced metrics components (mandatory, collapsible panel)
 
 ## 14. Theming & Layout
 
-- CSS variables for palette: primary, accent, warn, status colors (success, failed, pending, active, revoked, expired).  
-- Dark mode future-ready (prefers-color-scheme detection).  
-- Responsive: Grid layout adapting 3-column -> 2-column -> stacked.  
+**Note**: Detailed design specifications are provided in the companion [Portal Frontend Style Guide](./portal-frontend-style-guide.md) document, which defines the complete visual design system inspired by PointChealth.com.
+
+### 14.1 Color Palette
+- **Primary Colors**: Deep navy (#021B38) for headers and key UI elements
+- **Secondary**: Blue-gray (#727B9C) for subtitles and secondary elements  
+- **Accent**: Coral (#DE4843) for error states and important alerts
+- **Status Colors**: Success (green), warning (orange), error (red), info (blue)
+- **Neutrals**: White, light gray, medium gray, dark gray for backgrounds and text
+
+### 14.2 Typography
+- **Headings**: freight-text-pro serif font family for elegant, professional appearance
+- **Body Text**: Arial/Helvetica sans-serif stack for optimal readability
+- **UI Elements**: Roboto for form labels, buttons, and interface components
+- **Responsive Scale**: 56px H1 down to 12px captions with appropriate line heights
+
+### 14.3 Layout System
+- **Grid**: 12-column responsive grid with Material Design breakpoints
+- **Spacing**: 8px base unit scaling system (4px, 8px, 16px, 24px, 32px, etc.)
+- **Containers**: Max-width 1200px with responsive padding
+- **Responsive**: Grid layout adapting 3-column → 2-column → stacked
+
+### 14.4 Component Styling
+- **Cards**: White background with subtle shadows and rounded corners
+- **Buttons**: Three variants (primary navy, secondary outlined, danger coral)
+- **Forms**: Consistent padding, focus states, and validation styling
+- **Navigation**: Clean horizontal layout with hover and active states
+- **Status Badges**: Color-coded rounded badges for file/key status display
+
+### 14.5 Accessibility Features
+- **WCAG AA Compliance**: All color combinations meet 4.5:1 contrast ratio
+- **Focus States**: Visible focus indicators for keyboard navigation
+- **High Contrast Support**: CSS media query adaptation for accessibility needs
+- **Dark Mode Ready**: CSS custom properties prepared for future dark theme  
 
 ## 15. Performance Considerations
 
